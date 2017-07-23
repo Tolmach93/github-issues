@@ -35,9 +35,12 @@ export default class Search extends Component {
     }
 
     render() {
-        const helpList = this.props.help.filter(repo => ~repo.indexOf(this.state.inputValue))
+        const [inpUser, inpRep] = this.state.inputValue.split(' ');
+        const helpList = this.props.help.filter(repo => {
+            return inpRep ? ~repo.indexOf(inpRep) : true
+        })
             .map((repo, index) => <div onMouseDown={(e) => {
-                const value = e.target.innerText;
+                const value = `${inpUser} ${e.target.innerText}`;
                 this.setState({
                     inputValue: value
                 });

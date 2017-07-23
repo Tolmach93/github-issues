@@ -1,11 +1,13 @@
 import {combineReducers} from 'redux'
 import {
     REQUEST_ISSUES, RECEIVE_ISSUES,
+    REQUEST_ISSUE, RECEIVE_ISSUE,
     REQUEST_REPOSITORIES, RECEIVE_REPOSITORIES,
     SELECT_REPOSITORY, SELECT_USER,
     INVALIDATE_REPOSITORY, SELECT_PER_PAGE,
     FAIL_RECEIVE_ISSUES, FAIL_RECEIVE_REPOSITORIES,
     SELECT_USER_AND_REPOSITORY, SELECT_PAGE,
+    FAIL_RECEIVE_ISSUE,
 } from './actions'
 
 function selectedPage(state = 1, action) {
@@ -40,7 +42,7 @@ function selectedUser(state = '', action) {
             return state
     }
 }
-function selectedPerPage(state = 10, action) {
+function selectedPerPage(state = 20, action) {
     switch (action.type) {
         case SELECT_PER_PAGE:
             return action.perPage;
@@ -49,25 +51,53 @@ function selectedPerPage(state = 10, action) {
     }
 }
 
+function singleIssue(state = {}, action) {
+
+    switch (action.type) {
+        case FAIL_RECEIVE_ISSUE:
+            return Object.assign({}, state, {
+                isFetching: false,
+                errorMessage: !action.response ? 'Нет соединения с интернетом!' : action.response.data && action.response.data.message ? action.response.data.message : 'Server error!'
+            });
+        case REQUEST_ISSUE:
+            return Object.assign({}, state, {
+                isFetching: true
+            });
+        case RECEIVE_ISSUE:
+            return Object.assign({}, state, {
+                isFetching: false,
+                ...action.issue
+            });
+        default:
+            return state
+    }
+}
+
+
 function entities(state = {
     issues: {},
     users: {}
 }, action) {
     switch (action.type) {
+        case FAIL_RECEIVE_ISSUE:
+        case REQUEST_ISSUE:
+        case RECEIVE_ISSUE:
+            return Object.assign({}, state, {
+                issues: Object.assign({}, state.issues, {
+                    [action.issuePath]: singleIssue(state.issues[action.issuePath], action)
+                })
+            });
         case RECEIVE_ISSUES:
             let issues = {};
             let users = {};
             action.issues.forEach(issue => {
                 const userId = issue.user.id;
-                users[userId] = {
-                    ...issue.user,
-                    lastUpdated: action.receivedAt
-                };
+                users[userId] = issue.user;
                 delete issue.user;
-                issues[issue.id] = {
+                let arrayUsAndRep = action.issuePath.split('/');
+                issues[`/repos/${arrayUsAndRep[0]}/${arrayUsAndRep[1]}/issues/${issue.number}`] = {
                     ...issue,
-                    userId,
-                    lastUpdated: action.receivedAt
+                    userId
                 };
             });
             return Object.assign({}, state, {
@@ -106,11 +136,12 @@ function issues(state = {
                 errorMessage: !action.response ? 'Нет соединения с интернетом!' : action.response.data && action.response.data.message ? action.response.data.message : 'Server error!'
             });
         case RECEIVE_ISSUES:
+            let arrayUsAndRep = action.issuePath.split('/');
             return Object.assign({}, state, {
                 total: action.total,
                 isFetching: false,
                 didInvalidate: false,
-                items: action.issues.map(issue => issue.id),
+                items: action.issues.map(issue => `/repos/${arrayUsAndRep[0]}/${arrayUsAndRep[1]}/issues/${issue.number}`),
                 lastUpdated: state.lastUpdated ? state.lastUpdated : action.receivedAt
             });
         default:

@@ -3,12 +3,11 @@
  */
 const express = require('express');
 const app = express();
-const path = require('path');
 
 app.use(express.static('build'));
 
-app.get('/*', (req,res) => {
-    res.sendfile(path.join(__dirname, 'index.html'))
+app.get('/*', (req, res) => {
+    res.sendFile('build/index.html', {root: __dirname})
 });
 
 app.listen(8080, function () {

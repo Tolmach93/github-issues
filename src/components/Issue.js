@@ -14,7 +14,7 @@ export default class Issue extends Component {
 
         return (
             <div style={divStyle} className="issue">
-                {issue.number}) {issue.title} - {new Date(issue.created_at).toDateString()};
+                {issue.number}) {issue.title} - {new Date(issue.created_at).toLocaleDateString('ru')};
             </div>
         );
     }

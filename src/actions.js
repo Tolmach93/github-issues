@@ -5,6 +5,9 @@
 export const REQUEST_ISSUES = 'REQUEST_ISSUES';
 export const RECEIVE_ISSUES = 'RECEIVE_ISSUES';
 export const FAIL_RECEIVE_ISSUES = 'FAIL_RECEIVE_ISSUES';
+export const REQUEST_ISSUE = 'REQUEST_ISSUE';
+export const RECEIVE_ISSUE = 'RECEIVE_ISSUE';
+export const FAIL_RECEIVE_ISSUE = 'FAIL_RECEIVE_ISSUE';
 export const REQUEST_REPOSITORIES = 'REQUEST_REPOSITORIES';
 export const RECEIVE_REPOSITORIES = 'RECEIVE_REPOSITORIES';
 export const FAIL_RECEIVE_REPOSITORIES = 'FAIL_RECEIVE_REPOSITORIES';
@@ -168,5 +171,53 @@ export function fetchRepositoriesIfNeeded(user) {
         if (!state.usersRepositories[user] || !state.usersRepositories[user].isFetching) {
             return dispatch(fetchRepositories(user))
         }
+    }
+}
+
+export function fetchIssueIfNeeded(issuePath) {
+    return (dispatch, getState) => {
+        let state = getState();
+        if (!state.entities.issues[issuePath]) {
+            return dispatch(fetchIssue(issuePath))
+        }
+    }
+}
+
+
+function fetchIssue(issuePath) {
+    return dispatch => {
+        dispatch(requestIssue(issuePath));
+        return axios.get(`https://api.github.com${issuePath}`)
+            .then(response => {
+                if (response.data && !response.data.message) {
+                    dispatch(receiveIssue(issuePath, response));
+                } else {
+                    dispatch(failReceiveIssue(issuePath, response));
+                }
+            })
+            .catch(err => dispatch(failReceiveIssue(issuePath, err.response)))
+    }
+}
+
+function requestIssue(issuePath) {
+    return {
+        type: REQUEST_ISSUE,
+        issuePath
+    }
+}
+
+function failReceiveIssue(issuePath, response) {
+    return {
+        type: FAIL_RECEIVE_ISSUE,
+        issuePath,
+        response
+    }
+}
+
+function receiveIssue(issuePath, response) {
+    return {
+        type: RECEIVE_ISSUE,
+        issuePath,
+        issue: response.data
     }
 }

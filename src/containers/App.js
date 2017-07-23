@@ -1,4 +1,5 @@
 import React, {Component} from 'react'
+import './../sass/App.sass';
 import {connect} from 'react-redux'
 import {
     fetchIssuesIfNeeded,
@@ -14,7 +15,7 @@ import Search from '../components/Search';
 import SearchItem from '../components/SearchItem'
 import Loading from "../components/Loading";
 import Pagination from "../components/Pagination";
-import Options from "../components/Options";
+import NavSearch from "../components/NavSearch";
 
 const REFRESH_TIME = (10 * 60 * 1000); // 10 минут в миллисекундах
 
@@ -87,20 +88,21 @@ class App extends Component {
         if (isFetching) {
             content = <Loading/>;
         } else {
-            content = issues.map(issue => <SearchItem key={issue.id} author={users[issue.userId]} issue={issue}/>);
+            content = issues.map(issue => <SearchItem key={issue.id} selectedUser={selectedUser}
+                                                      selectedRepository={selectedRepository}
+                                                      author={users[issue.userId]} issue={issue}/>);
         }
         const pagination = total > 1 ?
             <Pagination onClick={this.changePage} current={selectedPage} total={total}/> : null;
         return (
-            <div>
+            <div className="app">
                 <Search value={`${selectedUser} ${selectedRepository}`.trim()}
                         help={repositories}
                         onCheckUser={this.handleCheckUser}
                         onClick={this.handleClick}/>
-                { selectedUser.length && selectedRepository.length && !isFetching?
-                    <Options onChange={this.changePerPage} value={selectedPerPage}
-                             options={[10, 20, 30, 50, 100]}/> : null}
-                { selectedUser.length && selectedRepository.length && !isFetching ? <div onClick={this.refresh}>Обновить</div> : null}
+                { selectedUser.length && selectedRepository.length && !isFetching ?
+                    <NavSearch refresh={this.refresh} changePerPage={this.changePerPage}
+                               selectedPerPage={selectedPerPage}/> : null}
                 {pagination}
                 {content}
                 {errorMessage ? <div>{errorMessage}</div> : null}
@@ -120,7 +122,7 @@ function mapStateToProps(state) {
         : [];
 
     const repositories = usersRepositories[selectedUser]
-        ? usersRepositories[selectedUser].items.map(item => selectedUser + ' ' + item)
+        ? usersRepositories[selectedUser].items
         : [];
 
     let users = {};
