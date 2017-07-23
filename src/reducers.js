@@ -2,12 +2,29 @@ import {combineReducers} from 'redux'
 import {
     REQUEST_ISSUES, RECEIVE_ISSUES,
     SELECT_REPOSITORY, SELECT_USER,
-    INVALIDATE_REPOSITORY, SELECT_PER_PAGE
+    INVALIDATE_REPOSITORY, SELECT_PER_PAGE,
+    FAIL_RECEIVE_ISSUES, SELECT_USER_AND_REPOSITORY,
+    SELECT_PAGE,
 } from './actions'
+
+function selectedPage(state = 1, action) {
+    switch (action.type) {
+        case SELECT_PAGE:
+            return action.page;
+        case SELECT_REPOSITORY:
+        case SELECT_USER:
+        case SELECT_USER_AND_REPOSITORY:
+        case SELECT_PER_PAGE:
+            return 1;
+        default:
+            return state
+    }
+}
 
 function selectedRepository(state = '', action) {
     switch (action.type) {
         case SELECT_REPOSITORY:
+        case SELECT_USER_AND_REPOSITORY:
             return action.repository;
         default:
             return state
@@ -16,6 +33,7 @@ function selectedRepository(state = '', action) {
 function selectedUser(state = '', action) {
     switch (action.type) {
         case SELECT_USER:
+        case SELECT_USER_AND_REPOSITORY:
             return action.user;
         default:
             return state
@@ -64,27 +82,34 @@ function entities(state = {
 function issues(state = {
     isFetching: false,
     didInvalidate: false,
-    fetchedPageCount: 0,
-    items: []
+    items: [],
 }, action) {
     switch (action.type) {
         case INVALIDATE_REPOSITORY:
             return Object.assign({}, state, {
                 didInvalidate: true,
-                fetchedPageCount: 0,
+                errorMessage: null,
+                total: null,
+                lastUpdated: null
             });
         case REQUEST_ISSUES:
             return Object.assign({}, state, {
                 isFetching: true,
-                didInvalidate: false
+                didInvalidate: false,
+                errorMessage: null
+            });
+        case FAIL_RECEIVE_ISSUES:
+            return Object.assign({}, state, {
+                isFetching: false,
+                errorMessage: !action.response ? 'Нет соединения с интернетом!' : action.response.data && action.response.data.message ? action.response.data.message : 'Server error!'
             });
         case RECEIVE_ISSUES:
             return Object.assign({}, state, {
+                total: action.total,
                 isFetching: false,
                 didInvalidate: false,
-                fetchedPageCount: state.fetchedPageCount + 1,
-                items: state.items.concat(action.issues.map(issue => issue.id)),
-                lastUpdated: action.receivedAt
+                items: action.issues.map(issue => issue.id),
+                lastUpdated: state.lastUpdated ? state.lastUpdated : action.receivedAt
             });
         default:
             return state
@@ -96,20 +121,10 @@ function issuesByRepository(state = {}, action) {
         case INVALIDATE_REPOSITORY:
         case RECEIVE_ISSUES:
         case REQUEST_ISSUES:
+        case FAIL_RECEIVE_ISSUES:
             return Object.assign({}, state, {
-                [action.repository]: issues(state[action.repository], action)
+                [action.issuePath]: issues(state[action.issuePath], action)
             });
-        case SELECT_PER_PAGE:
-            let keys = Object.keys(state);
-            keys = keys.filter(key => state[key].fetchedPageCount);
-            return Object.assign({}, state, ...keys.map(key => {
-                const fetchedPageCount = parseInt(state[key].items.length / action.perPage);
-                const items = state[key].items.slice(0, action.perPage * fetchedPageCount);
-                return Object.assign({}, state[key], {
-                    fetchedPageCount,
-                    items
-                });
-            }));
         default:
             return state
     }
@@ -120,6 +135,7 @@ const rootReducer = combineReducers({
     selectedRepository,
     selectedPerPage,
     selectedUser,
+    selectedPage,
     entities
 });
 
