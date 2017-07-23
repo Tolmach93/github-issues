@@ -5,6 +5,9 @@
 export const REQUEST_ISSUES = 'REQUEST_ISSUES';
 export const RECEIVE_ISSUES = 'RECEIVE_ISSUES';
 export const FAIL_RECEIVE_ISSUES = 'FAIL_RECEIVE_ISSUES';
+export const REQUEST_REPOSITORIES = 'REQUEST_REPOSITORIES';
+export const RECEIVE_REPOSITORIES = 'RECEIVE_REPOSITORIES';
+export const FAIL_RECEIVE_REPOSITORIES = 'FAIL_RECEIVE_REPOSITORIES';
 export const SELECT_REPOSITORY = 'SELECT_REPOSITORY';
 export const SELECT_USER = 'SELECT_USER';
 export const SELECT_USER_AND_REPOSITORY = 'SELECT_USER_AND_REPOSITORY';
@@ -122,3 +125,48 @@ export function fetchIssuesIfNeeded(issuePath) {
     }
 }
 
+
+function requestRepositories(user) {
+    return {
+        type: REQUEST_REPOSITORIES,
+        user
+    }
+}
+
+function failReceiveRepositories(user) {
+    return {
+        type: FAIL_RECEIVE_REPOSITORIES,
+        user,
+    }
+}
+
+function receiveRepositories(user, response) {
+    return {
+        type: RECEIVE_REPOSITORIES,
+        user,
+        repositories: response.data
+    }
+}
+
+function fetchRepositories(user) {
+    return dispatch => {
+        dispatch(requestRepositories(user));
+        return axios.get(`https://api.github.com/users/${user}/repos`)
+            .then(response => {
+                if (response.data && response.data.map) {
+                    dispatch(receiveRepositories(user, response));
+                } else {
+                    dispatch(failReceiveRepositories(user));
+                }
+            })
+            .catch(err => dispatch(failReceiveRepositories(user)))
+    }
+}
+export function fetchRepositoriesIfNeeded(user) {
+    return (dispatch, getState) => {
+        let state = getState();
+        if (!state.usersRepositories[user] || !state.usersRepositories[user].isFetching) {
+            return dispatch(fetchRepositories(user))
+        }
+    }
+}

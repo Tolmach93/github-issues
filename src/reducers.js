@@ -1,10 +1,11 @@
 import {combineReducers} from 'redux'
 import {
     REQUEST_ISSUES, RECEIVE_ISSUES,
+    REQUEST_REPOSITORIES, RECEIVE_REPOSITORIES,
     SELECT_REPOSITORY, SELECT_USER,
     INVALIDATE_REPOSITORY, SELECT_PER_PAGE,
-    FAIL_RECEIVE_ISSUES, SELECT_USER_AND_REPOSITORY,
-    SELECT_PAGE,
+    FAIL_RECEIVE_ISSUES, FAIL_RECEIVE_REPOSITORIES,
+    SELECT_USER_AND_REPOSITORY, SELECT_PAGE,
 } from './actions'
 
 function selectedPage(state = 1, action) {
@@ -101,6 +102,7 @@ function issues(state = {
         case FAIL_RECEIVE_ISSUES:
             return Object.assign({}, state, {
                 isFetching: false,
+                items: [],
                 errorMessage: !action.response ? 'Нет соединения с интернетом!' : action.response.data && action.response.data.message ? action.response.data.message : 'Server error!'
             });
         case RECEIVE_ISSUES:
@@ -130,8 +132,45 @@ function issuesByRepository(state = {}, action) {
     }
 }
 
+function repositories(state = {
+    isFetching: false,
+    items: [],
+}, action) {
+    switch (action.type) {
+        case RECEIVE_REPOSITORIES:
+            return Object.assign({}, state, {
+                isFetching: false,
+                items: action.repositories.map(repo => repo.name)
+            });
+        case REQUEST_REPOSITORIES:
+            return Object.assign({}, state, {
+                isFetching: true
+            });
+        case FAIL_RECEIVE_REPOSITORIES:
+            return Object.assign({}, state, {
+                isFetching: false
+            });
+        default:
+            return state
+    }
+}
+
+function usersRepositories(state = {}, action) {
+    switch (action.type) {
+        case RECEIVE_REPOSITORIES:
+        case REQUEST_REPOSITORIES:
+        case FAIL_RECEIVE_REPOSITORIES:
+            return Object.assign({}, state, {
+                [action.user]: repositories(state[action.user], action)
+            });
+        default:
+            return state
+    }
+}
+
 const rootReducer = combineReducers({
     issuesByRepository,
+    usersRepositories,
     selectedRepository,
     selectedPerPage,
     selectedUser,

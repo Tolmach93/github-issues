@@ -1,11 +1,10 @@
-import React, { Component} from 'react'
+import React, {Component} from 'react'
 
 export default class Options extends Component {
     render() {
-        const { value, onChange, options } = this.props;
+        const {value, onChange, options} = this.props;
         return (
             <span>
-        <h1>{value}</h1>
         <select onChange={e => onChange(+e.target.value)}
                 value={value}>
           {options.map(option =>
